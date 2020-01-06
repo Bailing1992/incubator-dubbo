@@ -16,10 +16,10 @@
  */
 package org.apache.dubbo.rpc.proxy;
 
-import org.apache.dubbo.common.Constants;
+import org.apache.dubbo.common.logger.Logger;
+import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.RpcInvocation;
-import org.apache.dubbo.rpc.support.RpcUtils;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -28,7 +28,7 @@ import java.lang.reflect.Method;
  * InvokerHandler
  */
 public class InvokerInvocationHandler implements InvocationHandler {
-
+    private static final Logger logger = LoggerFactory.getLogger(InvokerInvocationHandler.class);
     private final Invoker<?> invoker;
 
     public InvokerInvocationHandler(Invoker<?> handler) {
@@ -37,38 +37,26 @@ public class InvokerInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        String methodName = method.getName();
-        Class<?>[] parameterTypes = method.getParameterTypes();
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(invoker, args);
         }
-        if ("toString".equals(methodName) && parameterTypes.length == 0) {
-            return invoker.toString();
-        }
-        if ("hashCode".equals(methodName) && parameterTypes.length == 0) {
-            return invoker.hashCode();
-        }
-        if ("equals".equals(methodName) && parameterTypes.length == 1) {
+        String methodName = method.getName();
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        if (parameterTypes.length == 0) {
+            if ("toString".equals(methodName)) {
+                return invoker.toString();
+            } else if ("$destroy".equals(methodName)) {
+                invoker.destroy();
+                return null;
+            } else if ("hashCode".equals(methodName)) {
+                return invoker.hashCode();
+            }
+        } else if (parameterTypes.length == 1 && "equals".equals(methodName)) {
             return invoker.equals(args[0]);
         }
+        RpcInvocation rpcInvocation = new RpcInvocation(method, invoker.getInterface().getName(), args);
+        rpcInvocation.setTargetServiceUniqueName(invoker.getUrl().getServiceKey());
 
-        RpcInvocation invocation;
-        if (RpcUtils.hasGeneratedFuture(method)) {
-            Class<?> clazz = method.getDeclaringClass();
-            String syncMethodName = methodName.substring(0, methodName.length() - Constants.ASYNC_SUFFIX.length());
-            Method syncMethod = clazz.getMethod(syncMethodName, method.getParameterTypes());
-            invocation = new RpcInvocation(syncMethod, args);
-            invocation.setAttachment(Constants.FUTURE_GENERATED_KEY, "true");
-            invocation.setAttachment(Constants.ASYNC_KEY, "true");
-        } else {
-            invocation = new RpcInvocation(method, args);
-            if (RpcUtils.hasFutureReturnType(method)) {
-                invocation.setAttachment(Constants.FUTURE_RETURNTYPE_KEY, "true");
-                invocation.setAttachment(Constants.ASYNC_KEY, "true");
-            }
-        }
-        return invoker.invoke(invocation).recreate();
+        return invoker.invoke(rpcInvocation).recreate();
     }
-
-
 }
