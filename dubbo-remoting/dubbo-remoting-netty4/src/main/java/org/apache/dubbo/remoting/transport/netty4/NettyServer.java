@@ -93,6 +93,7 @@ public class NettyServer extends AbstractServer implements RemotingServer {
         workerGroup = new NioEventLoopGroup(getUrl().getPositiveParameter(IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS),
                 new DefaultThreadFactory("NettyServerWorker", true));
 
+        // 配置NettyServer,添加handler到管线
         final NettyServerHandler nettyServerHandler = new NettyServerHandler(getUrl(), this);
         channels = nettyServerHandler.getChannels();
 
@@ -102,6 +103,7 @@ public class NettyServer extends AbstractServer implements RemotingServer {
                 .childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE)
                 .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                    // 把编解码handler和nettyServerHandler注册到每个接受链接的通道管理的管线中
                     @Override
                     protected void initChannel(NioSocketChannel ch) throws Exception {
                         // FIXME: should we use getTimeout()?
@@ -112,13 +114,13 @@ public class NettyServer extends AbstractServer implements RemotingServer {
                                     SslHandlerInitializer.sslServerHandler(getUrl(), nettyServerHandler));
                         }
                         ch.pipeline()
-                                .addLast("decoder", adapter.getDecoder())
-                                .addLast("encoder", adapter.getEncoder())
-                                .addLast("server-idle-handler", new IdleStateHandler(0, 0, idleTimeout, MILLISECONDS))
-                                .addLast("handler", nettyServerHandler);
+                                .addLast("decoder", adapter.getDecoder()) // 解码器handler
+                                .addLast("encoder", adapter.getEncoder()) // 编码器handler
+                                .addLast("server-idle-handler", new IdleStateHandler(0, 0, idleTimeout, MILLISECONDS)) // 检测心跳的handler
+                                .addLast("handler", nettyServerHandler); // 业务handler
                     }
                 });
-        // bind
+        // bind  绑定本地端口，并启动监听服务。
         ChannelFuture channelFuture = bootstrap.bind(getBindAddress());
         channelFuture.syncUninterruptibly();
         channel = channelFuture.channel();

@@ -37,6 +37,8 @@ import static org.apache.dubbo.rpc.Constants.LOCAL_PROTOCOL;
 
 /**
  * InjvmProtocol
+ *
+ * 如果为本地服务暴露，则其内部根据 URL 中 protocol 的类型为 injvm, 则会选择 protocol 的实现类为 InjvmProtocol
  */
 public class InjvmProtocol extends AbstractProtocol implements Protocol {
 

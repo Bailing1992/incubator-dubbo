@@ -122,6 +122,8 @@ public class ZookeeperRegistry extends FailbackRegistry {
         }
     }
 
+
+    // 最终调用zkClient的create方法将服务注册到zookeeper
     @Override
     public void doRegister(URL url) {
         try {

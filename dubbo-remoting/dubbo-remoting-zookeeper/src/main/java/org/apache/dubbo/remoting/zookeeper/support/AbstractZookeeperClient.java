@@ -69,29 +69,6 @@ public abstract class AbstractZookeeperClient<TargetDataListener, TargetChildLis
 
 
     @Override
-    public void create(String path, boolean ephemeral) {
-        if (!ephemeral) {
-            if(persistentExistNodePath.contains(path)){
-                return;
-            }
-            if (checkExists(path)) {
-                persistentExistNodePath.add(path);
-                return;
-            }
-        }
-        int i = path.lastIndexOf('/');
-        if (i > 0) {
-            create(path.substring(0, i), false);
-        }
-        if (ephemeral) {
-            createEphemeral(path);
-        } else {
-            createPersistent(path);
-            persistentExistNodePath.add(path);
-        }
-    }
-
-    @Override
     public void addStateListener(StateListener listener) {
         stateListeners.add(listener);
     }

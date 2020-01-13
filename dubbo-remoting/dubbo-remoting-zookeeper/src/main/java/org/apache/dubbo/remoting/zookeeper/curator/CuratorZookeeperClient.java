@@ -84,6 +84,7 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient<CuratorZooke
         }
     }
 
+    // 创建了节点/dubbo  /dubbo/com...
     @Override
     public void createPersistent(String path) {
         try {

@@ -272,12 +272,15 @@ public class DubboProtocol extends AbstractProtocol {
         return DEFAULT_PORT;
     }
 
+
+    //
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         URL url = invoker.getUrl();
 
         // export service.
         String key = serviceKey(url);
+        // Invoker到Exporter的转化
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
         exporterMap.put(key, exporter);
 
@@ -295,16 +298,26 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        // 同一个机器的不同服务导出只会开启一个NettyServer
         openServer(url);
         optimizeSerialization(url);
 
         return exporter;
     }
 
+
+    //
     private void openServer(URL url) {
         // find server.
+        /**
+         * 提供者机器的地址ip:port
+         * */
         String key = url.getAddress();
+        //
         //client can export a service which's only for server to invoke
+        /**
+         * 判断当前是否为服务提供端，只有服务提供端才会启动监听
+         * */
         boolean isServer = url.getParameter(IS_SERVER_KEY, true);
         if (isServer) {
             ProtocolServer server = serverMap.get(key);
@@ -312,6 +325,7 @@ public class DubboProtocol extends AbstractProtocol {
                 synchronized (this) {
                     server = serverMap.get(key);
                     if (server == null) {
+                        //如果不存在则创建，并放入缓存
                         serverMap.put(key, createServer(url));
                     }
                 }
@@ -322,6 +336,7 @@ public class DubboProtocol extends AbstractProtocol {
         }
     }
 
+    // 创建server,多个不同服务启动时，只有第一个会被创建，后面的服务直接从缓存中获取
     private ProtocolServer createServer(URL url) {
         url = URLBuilder.from(url)
                 // send readonly event when server closes, it's enabled by default
