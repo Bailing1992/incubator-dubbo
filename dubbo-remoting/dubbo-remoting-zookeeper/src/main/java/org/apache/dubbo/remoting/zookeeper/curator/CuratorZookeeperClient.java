@@ -155,6 +155,17 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient<CuratorZooke
         }
     }
 
+
+
+
+    @Override
+    public void create(String path, boolean ephemeral) {
+
+    }
+
+
+
+
     @Override
     public List<String> getChildren(String path) {
         try {

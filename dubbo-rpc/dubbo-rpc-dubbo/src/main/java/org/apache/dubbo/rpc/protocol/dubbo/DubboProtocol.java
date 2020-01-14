@@ -107,6 +107,7 @@ public class DubboProtocol extends AbstractProtocol {
 
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
 
+        // 无论 消费端 是否 需要执行结果，最终都是DubboProtocol类的reply方法来执行具体的服务。
         @Override
         public CompletableFuture<Object> reply(ExchangeChannel channel, Object message) throws RemotingException {
 
@@ -117,6 +118,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
 
             Invocation inv = (Invocation) message;
+            // 获取调用方法对应的 DubboExporter 对象导出的 Invoker 对象。
             Invoker<?> invoker = getInvoker(channel, inv);
             // need to consider backward-compatibility if it's a callback
             if (Boolean.TRUE.toString().equals(inv.getAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
@@ -141,7 +143,9 @@ public class DubboProtocol extends AbstractProtocol {
                     return null;
                 }
             }
+            // 获取上下文对象，并设置对端地址
             RpcContext.getContext().setRemoteAddress(channel.getRemoteAddress());
+            // 执行invoke调用链， 经过调用链后最终调用了服务提供方启动时AbstractProxyInvoker代理类创建的invoke方法
             Result result = invoker.invoke(inv);
             return result.thenApply(Function.identity());
         }
@@ -156,6 +160,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        // 线程池里的任务被执行后，最终会调用此方法
         @Override
         public void connected(Channel channel) throws RemotingException {
             invoke(channel, ON_CONNECT_KEY);
@@ -170,7 +175,9 @@ public class DubboProtocol extends AbstractProtocol {
         }
 
         private void invoke(Channel channel, String methodKey) {
+            // 创建 invocation 对象
             Invocation invocation = createInvocation(channel, channel.getUrl(), methodKey);
+            // 不为null 则调用received进行处理。
             if (invocation != null) {
                 try {
                     received(channel, invocation);
@@ -190,11 +197,13 @@ public class DubboProtocol extends AbstractProtocol {
          * @return
          */
         private Invocation createInvocation(Channel channel, URL url, String methodKey) {
+            // 如果URL中不包含key,则直接返回null
             String method = url.getParameter(methodKey);
             if (method == null || method.length() == 0) {
                 return null;
             }
 
+            // 根据method创建RPCInvocation对象
             RpcInvocation invocation = new RpcInvocation(method, url.getParameter(INTERFACE_KEY), new Class<?>[0], new Object[0]);
             invocation.setAttachment(PATH_KEY, url.getPath());
             invocation.setAttachment(GROUP_KEY, url.getParameter(GROUP_KEY));

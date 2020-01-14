@@ -41,6 +41,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.READONLY_EVENT;
 
 /**
  * ExchangeReceiver
+ * 线程池任务被激活后调用了HeaderExchangeHandler的received（）方法。
  */
 public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
@@ -97,7 +98,9 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         // find handler by message class.
         Object msg = req.getData();
         try {
+            // 调用 DubboProtocol 的 reply 方法
             CompletionStage<Object> future = handler.reply(channel, msg);
+            // 如果请求已经完成，则设置结果并写回
             future.whenComplete((appResult, t) -> {
                 try {
                     if (t == null) {
@@ -165,18 +168,22 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
         final ExchangeChannel exchangeChannel = HeaderExchangeChannel.getOrAddChannel(channel);
+        // 请求
         if (message instanceof Request) {
-            // handle request.
+            // handle request.处理请求
             Request request = (Request) message;
             if (request.isEvent()) {
                 handlerEvent(channel, request);
             } else {
+                // 需要有返回值的请求req-res twoway
                 if (request.isTwoWay()) {
                     handleRequest(exchangeChannel, request);
                 } else {
+                    // 不需要有返回值的请求req,oneway
                     handler.received(exchangeChannel, request.getData());
                 }
             }
+            // 响应
         } else if (message instanceof Response) {
             handleResponse(channel, (Response) message);
         } else if (message instanceof String) {

@@ -412,10 +412,14 @@ public class RegistryProtocol implements Protocol {
             directory.setRegisteredConsumerUrl(getRegisteredConsumerUrl(subscribeUrl, url));
             registry.register(directory.getRegisteredConsumerUrl());
         }
+        // 建立路由规则链
         directory.buildRouterChain(subscribeUrl);
+        // 订阅服务提供者地址，向服务注册中心订阅服务提供者的服务。
         directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
                 PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 
+        // 包装 机器容错策略 到 invoker
+        // 根据参数选择配置的集群容错策略
         Invoker invoker = cluster.join(directory);
         return invoker;
     }
