@@ -40,6 +40,8 @@ import static org.apache.dubbo.rpc.Constants.ACTIVES_KEY;
  * </pre>
  *
  * @see Filter
+ *
+ * 用来控制消费端最大并发调用量
  */
 @Activate(group = CONSUMER, value = ACTIVES_KEY)
 public class ActiveLimitFilter implements Filter, Filter.Listener {

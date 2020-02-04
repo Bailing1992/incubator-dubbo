@@ -52,6 +52,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
     private ExecutorRepository executorRepository = ExtensionLoader.getExtensionLoader(ExecutorRepository.class).getDefaultExtension();
 
     public AbstractClient(URL url, ChannelHandler handler) throws RemotingException {
+        //加载编解码器实现
         super(url, handler);
 
         needReconnect = url.getParameter(Constants.SEND_RECONNECT_KEY, false);
@@ -59,6 +60,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         initExecutor(url);
 
         try {
+            //调用子类的doOpen
             doOpen();
         } catch (Throwable t) {
             close();
@@ -67,7 +69,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
                             + " connect to the server " + getRemoteAddress() + ", cause: " + t.getMessage(), t);
         }
         try {
-            // connect.
+            // connect. 发起远端链接
             connect();
             if (logger.isInfoEnabled()) {
                 logger.info("Start " + getClass().getSimpleName() + " " + NetUtils.getLocalAddress() + " connect to the server " + getRemoteAddress());

@@ -28,6 +28,8 @@ import org.apache.dubbo.rpc.proxy.InvokerInvocationHandler;
  * JavassistRpcProxyFactory
  *
  * ProxyFactory 适配器 根据URL里的proxy的类型选择具体的代理工厂，这里默认proxy类型为javassist
+ *
+ * 实现invoke到客户端接口的转化
  */
 public class JavassistProxyFactory extends AbstractProxyFactory {
 

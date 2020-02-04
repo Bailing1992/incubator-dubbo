@@ -82,15 +82,33 @@ import static org.apache.dubbo.rpc.cluster.Constants.REFER_KEY;
 /**
  * Please avoid using this class for any new application,
  * use {@link ReferenceConfigBase} instead.
- * 服务消费房需要使用ReferenceConfig来消费服务
+ *
+ *
+ * 在服务消费端应用中，每个需要消费的服务都都被包装成referenceConfig
+ * 在应用启动时会调用每个服务对应的ReferenceConfig的get方法，
+ * 然后会为每个服务创建一个自己的RegistryDirectory对象，
+ *
+ *  每个registryDirectory管理该服务提供者的地址列表、路由规则、动态配置等信息，当服务提供者的信息发生变化时，
+ *  RegistryDirectory会动态的得到变化通知，并自动更新。
+ *
+ *
+ *
+ *
+ *
+ *
+ * ReferenceConfig 代表一个要消费的服务的配置对象
+ * 调用 ReferenceConfig 的get 方法，就意味着要创建一个对服务提供方的远程调用代理。
+ *
+ *
+ * 服务消费房方需要使用 ReferenceConfig 来消费服务
  */
 public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
     public static final Logger logger = LoggerFactory.getLogger(ReferenceConfig.class);
 
     /**
-     * The {@link Protocol} implementation with adaptive functionality,it will be different in different scenarios.
-     * A particular {@link Protocol} implementation is determined by the protocol attribute in the {@link URL}.
+     * The {@link Protocol} implementation with adaptive functionality,it will be different in different scenarios 场景.
+     * A particular 特定的 {@link Protocol} implementation is determined by the protocol attribute 属性 in the {@link URL}.
      * For example:
      *
      * <li>when the url is registry://224.5.6.7:1234/org.apache.dubbo.registry.RegistryService?application=dubbo-sample,
@@ -151,7 +169,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
     }
 
 
-    // 生成远程调用代理类
+    // 生成远程调用代理类, 方法拦截器为 InvokeInvocationHandler
     public synchronized T get() {
         if (destroyed) {
             throw new IllegalStateException("The invoker of ReferenceConfig(" + url + ") has already destroyed!");
@@ -269,6 +287,9 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         dispatch(new ReferenceConfigInitializedEvent(this, invoker));
     }
 
+
+    // 创建 对远程服务提供者的代理
+    // 1 调用RegistryProtocol类的refer方法，由于registryProtocol是一个SPI，所以这里是通过其适配器类进行间接调用的
     @SuppressWarnings({"unchecked", "rawtypes", "deprecation"})
     private T createProxy(Map<String, String> map) {
         // 是否需要打开本地引用，需要则创建JVM协议的本地引用

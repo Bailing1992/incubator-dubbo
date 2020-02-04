@@ -86,7 +86,13 @@ import static org.apache.dubbo.rpc.cluster.Constants.ROUTER_KEY;
 
 
 /**
- * RegistryDirectory
+ * RegistryDirectory 在服务消费端启动时创建，维护了 所有服务提供者的 invoker 列表
+ * 调用其subscribe方法，假如使用的注册中心为zookeeper，这样就会去zookeeper订阅需要调用的服务提供者的地址列表。
+ *
+ * 当服务提供者宕机时，Zookeeper 会通知更新这个 invoker 列表
+ *
+ * 消费端发起远程调用 就是根据集群容错和负载均衡算法以及路由规则从 invoker 列表中选择一个进行调用的。
+ *
  */
 public class RegistryDirectory<T> extends AbstractDirectory<T> implements NotifyListener {
 
@@ -167,8 +173,14 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         this.registry = registry;
     }
 
+
+    /**
+     *  订阅服务提供者服务，并且把服务提供者所有的 URL 转化为 invoker 列表，并保存到 RegisterDirectory中
+     */
     public void subscribe(URL url) {
         setConsumerUrl(url);
+        // 添加一个监听器，当zookeeper服务端发现服务提供者地址列表发生变化时，会将地址列表推送到服务消费端，
+        // 然后 zkClient 会回调给监听器的notify方法。
         CONSUMER_CONFIGURATION_LISTENER.addNotifyListener(this);
         serviceConfigurationListener = new ReferenceConfigurationListener(this, url);
         registry.subscribe(url, this);
@@ -207,21 +219,34 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         }
     }
 
+    /**
+     * 当配置中心服务端发现服务提供者地址列表发生变化时，会将地址列表推动到服务消费端，zkClient会回调改监听器的notify方法
+     * 对 元数据信息 进行分类保存
+     * 根据 获取的最新的服务提供者URL地址，将其转化为具体的invoker列表，即每个服务提供者的URL会被转化为一个Invoker对象
+     * */
     @Override
     public synchronized void notify(List<URL> urls) {
+        // 使用JDK8流式迭代对不同类别的元数据进行分类
+        // 对URL进行过滤，并对过滤后URL根据不同类型的信息进行分类
         Map<String, List<URL>> categoryUrls = urls.stream()
                 .filter(Objects::nonNull)
                 .filter(this::isValidCategory)
                 .filter(this::isNotCompatibleFor26x)
                 .collect(Collectors.groupingBy(this::judgeCategory));
 
+        // 动态配置信息，比如服务降级信息。 根据服务降级信息，重写URL
         List<URL> configuratorURLs = categoryUrls.getOrDefault(CONFIGURATORS_CATEGORY, Collections.emptyList());
         this.configurators = Configurator.toConfigurators(configuratorURLs).orElse(this.configurators);
 
+        // 路由信息收集并保存
         List<URL> routerURLs = categoryUrls.getOrDefault(ROUTERS_CATEGORY, Collections.emptyList());
+
+
+        // 把具体服务的所有服务提供者的URL信息转化为Invoker。也就是说服务消费端与服务提供者的所有机器都有链接
+        // 从zookeeper返回的服务提供者的信息里获取对应的路由规则，并保存到routerChain里
         toRouters(routerURLs).ifPresent(this::addRouters);
 
-        // providers
+        // providers 服务提供者信息
         List<URL> providerURLs = categoryUrls.getOrDefault(PROVIDERS_CATEGORY, Collections.emptyList());
         /**
          * 3.x added for extend URL address
@@ -269,6 +294,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     private void refreshInvoker(List<URL> invokerUrls) {
         Assert.notNull(invokerUrls, "invokerUrls should not be null");
 
+        // 只有一个服务提供者时
         if (invokerUrls.size() == 1
                 && invokerUrls.get(0) != null
                 && EMPTY_PROTOCOL.equals(invokerUrls.get(0).getProtocol())) {
@@ -277,6 +303,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             routerChain.setInvokers(this.invokers);
             destroyAllInvokers(); // Close all invokers
         } else {
+            // 多个服务提供者
             this.forbidden = false; // Allow to access
             Map<String, Invoker<T>> oldUrlInvokerMap = this.urlInvokerMap; // local reference
             if (invokerUrls == Collections.<URL>emptyList()) {
@@ -379,7 +406,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     /**
      * Turn urls into invokers, and if url has been refer, will not re-reference.
-     *
+     * 服务提供者URL转换为一个Invoker对象
      * @param urls
      * @return invokers
      */
@@ -434,6 +461,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                         enabled = url.getParameter(ENABLED_KEY, true);
                     }
                     if (enabled) {
+                        // 调用Dubbo协议转换服务到invoker
                         invoker = new InvokerDelegate<>(protocol.refer(serviceType, url), url, providerUrl);
                     }
                 } catch (Throwable t) {

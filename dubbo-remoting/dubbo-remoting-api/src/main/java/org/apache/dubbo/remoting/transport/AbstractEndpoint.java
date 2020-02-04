@@ -45,6 +45,7 @@ public abstract class AbstractEndpoint extends AbstractPeer implements Resetable
 
     public AbstractEndpoint(URL url, ChannelHandler handler) {
         super(url, handler);
+        // 在 NettyClient 的父类 AbstractEndpoint 中确定了编解码器，默认为 DubboCodec
         this.codec = getChannelCodec(url);
         this.timeout = url.getPositiveParameter(TIMEOUT_KEY, DEFAULT_TIMEOUT);
         this.connectTimeout = url.getPositiveParameter(Constants.CONNECT_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT);
@@ -100,6 +101,7 @@ public abstract class AbstractEndpoint extends AbstractPeer implements Resetable
         reset(getUrl().addParameters(parameters.getParameters()));
     }
 
+    // 使用getCodec方法获取了编解码器
     protected Codec2 getCodec() {
         return codec;
     }

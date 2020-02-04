@@ -39,6 +39,8 @@ import org.apache.dubbo.common.extension.SPI;
  * @see org.apache.dubbo.rpc.filter.EchoFilter
  * @see org.apache.dubbo.rpc.filter.TokenFilter
  * @see org.apache.dubbo.rpc.filter.TpsLimitFilter
+ *
+ * 消费端启动时把group=consumer并且value值在URL里的才会放到责任链中
  */
 @SPI
 public interface Filter {

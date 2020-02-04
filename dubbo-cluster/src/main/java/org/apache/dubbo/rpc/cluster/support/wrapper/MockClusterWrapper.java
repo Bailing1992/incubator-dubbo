@@ -24,10 +24,13 @@ import org.apache.dubbo.rpc.cluster.Directory;
 /**
  * mock impl
  *
+ *
+ * MockClusterWrapper 把 FailoverClusterInvoker 包装成 MockClusterInvoker 实例
  */
 public class MockClusterWrapper implements Cluster {
 
     private Cluster cluster;
+
 
     public MockClusterWrapper(Cluster cluster) {
         this.cluster = cluster;

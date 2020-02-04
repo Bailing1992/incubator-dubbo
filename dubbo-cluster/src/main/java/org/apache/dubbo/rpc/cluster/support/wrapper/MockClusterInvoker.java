@@ -35,6 +35,14 @@ import java.util.List;
 import static org.apache.dubbo.rpc.Constants.MOCK_KEY;
 import static org.apache.dubbo.rpc.cluster.Constants.INVOCATION_NEED_MOCK;
 
+/**
+ *
+ * 服务消费端是在 MockClusterInvoker 类的invoke方法里使用降级策略并在DubboInvoker的invoke方法中发起远程调用的。
+ * 所以服务降级是在消费端而且没有发起远程调用完成的
+ *
+ * */
+
+
 public class MockClusterInvoker<T> implements Invoker<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(MockClusterInvoker.class);
@@ -68,22 +76,30 @@ public class MockClusterInvoker<T> implements Invoker<T> {
         return directory.getInterface();
     }
 
+
+    /**
+     * 服务降级核心代码块。
+     * */
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         Result result = null;
 
+        // 查看URL里面是否有mock字段
         String value = directory.getUrl().getMethodParameter(invocation.getMethodName(), MOCK_KEY, Boolean.FALSE.toString()).trim();
         if (value.length() == 0 || "false".equalsIgnoreCase(value)) {
             //no mock
+            // 如果没有，或者值默认为false，则说明没有设置降级策略。正常发起远程调用
             result = this.invoker.invoke(invocation);
         } else if (value.startsWith("force")) {
             if (logger.isWarnEnabled()) {
                 logger.warn("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + directory.getUrl());
             }
             //force:direct mock
+            // 设置了force:return 降级策略
             result = doMockInvoke(invocation, null);
         } else {
             //fail-mock
+            // 设置了fail-mock
             try {
                 result = this.invoker.invoke(invocation);
 

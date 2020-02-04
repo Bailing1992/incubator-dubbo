@@ -43,6 +43,10 @@ import static org.apache.dubbo.common.constants.CommonConstants.RETRIES_KEY;
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Failover">Failover</a>
  *
+ * 默认的集群容错策略：
+ * 其内部首先根据设置的负载均衡策略 LoaderBalance 的扩展实现，选择一个 invoker 作为 FailoverClusterInvoker
+ * 具体的远程调用者，如果发生异常，则根据 FailoverClusterInvoker 的策略重新选择一个invoker进行调用
+ *
  */
 public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
 
@@ -75,6 +79,7 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 // check again
                 checkInvokers(copyInvokers, invocation);
             }
+            // 根据负载均衡策略，选择invoker作为具体的远程调用者
             Invoker<T> invoker = select(loadbalance, invocation, copyInvokers, invoked);
             invoked.add(invoker);
             RpcContext.getContext().setInvokers((List) invoked);

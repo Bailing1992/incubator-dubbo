@@ -50,6 +50,11 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
 
     private volatile URL consumerUrl;
 
+
+    // 保存可用服务提供者对应的invokers列表和路由规则信息，
+    // 当服务消费方的集群容错策略要获取可用的服务提供者对应的invoker列表时，会调用RouterChain的route方法
+    // 其内部根据路由规则和invokers列表提供服务
+
     protected RouterChain<T> routerChain;
 
     public AbstractDirectory(URL url) {
@@ -98,6 +103,8 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
         this.routerChain = routerChain;
     }
 
+
+    // 添加路由规则，这个路由规则是通过管理控制台进行配置的
     protected void addRouters(List<Router> routers) {
         routers = routers == null ? Collections.emptyList() : routers;
         routerChain.addRouters(routers);

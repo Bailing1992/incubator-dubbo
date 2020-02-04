@@ -88,7 +88,9 @@ public class NettyClient extends AbstractClient {
      */
     @Override
     protected void doOpen() throws Throwable {
+        // 创建业务handler
         final NettyClientHandler nettyClientHandler = new NettyClientHandler(getUrl(), this);
+        // 创建启动器并配置
         bootstrap = new Bootstrap();
         bootstrap.group(nioEventLoopGroup)
                 .option(ChannelOption.SO_KEEPALIVE, true)
@@ -98,6 +100,7 @@ public class NettyClient extends AbstractClient {
                 .channel(NioSocketChannel.class);
 
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Math.max(3000, getConnectTimeout()));
+        // 添加启动器到链接的管线
         bootstrap.handler(new ChannelInitializer() {
 
             @Override
@@ -108,10 +111,11 @@ public class NettyClient extends AbstractClient {
                     ch.pipeline().addLast("negotiation", SslHandlerInitializer.sslClientHandler(getUrl(), nettyClientHandler));
                 }
 
+                // 使用getCodec方法获取了编解码器 并封装到NettyCodecAdapater适配器中
                 NettyCodecAdapter adapter = new NettyCodecAdapter(getCodec(), getUrl(), NettyClient.this);
                 ch.pipeline()//.addLast("logging",new LoggingHandler(LogLevel.INFO))//for debug
-                        .addLast("decoder", adapter.getDecoder())
-                        .addLast("encoder", adapter.getEncoder())
+                        .addLast("decoder", adapter.getDecoder()) // 解码器
+                        .addLast("encoder", adapter.getEncoder()) // 编码器
                         .addLast("client-idle-handler", new IdleStateHandler(heartbeatInterval, 0, 0, MILLISECONDS))
                         .addLast("handler", nettyClientHandler);
 
@@ -125,9 +129,11 @@ public class NettyClient extends AbstractClient {
         });
     }
 
+    // 与服务者建立TCP链接
     @Override
     protected void doConnect() throws Throwable {
         long start = System.currentTimeMillis();
+        // 发起链接
         ChannelFuture future = bootstrap.connect(getConnectAddress());
         try {
             boolean ret = future.awaitUninterruptibly(getConnectTimeout(), MILLISECONDS);

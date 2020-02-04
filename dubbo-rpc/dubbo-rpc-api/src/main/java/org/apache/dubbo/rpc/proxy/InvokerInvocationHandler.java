@@ -26,6 +26,7 @@ import java.lang.reflect.Method;
 
 /**
  * InvokerHandler
+ * 当消费方调用了服务接口方法后会被 InvokerInvocationHandler 拦截
  */
 public class InvokerInvocationHandler implements InvocationHandler {
     private static final Logger logger = LoggerFactory.getLogger(InvokerInvocationHandler.class);
@@ -54,6 +55,8 @@ public class InvokerInvocationHandler implements InvocationHandler {
         } else if (parameterTypes.length == 1 && "equals".equals(methodName)) {
             return invoker.equals(args[0]);
         }
+
+        // 创建 RpcInvocation， 其中method为调用的方法，args为参数，这个RpcInvocation 对象会一直传递，知道发起远程调用
         RpcInvocation rpcInvocation = new RpcInvocation(method, invoker.getInterface().getName(), args);
         rpcInvocation.setTargetServiceUniqueName(invoker.getUrl().getServiceKey());
 

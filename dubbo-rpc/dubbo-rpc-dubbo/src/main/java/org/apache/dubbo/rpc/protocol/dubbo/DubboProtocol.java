@@ -420,38 +420,52 @@ public class DubboProtocol extends AbstractProtocol {
         optimizeSerialization(url);
 
         // create rpc invoker.
+        /**
+         * 其内部返回DubboInvoker，是这原生的invoker对象，服务消费方远程服务转换就这为了这个invoker
+         * */
         DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url), invokers);
         invokers.add(invoker);
 
         return invoker;
     }
 
+
+    /**
+     * 创建服务消费端的nettyClient对象
+     * 默认情况下，当消费端引用同一个服务提供者机器上多个服务时，这些服务服用同一个Netty链接，
+     * */
     private ExchangeClient[] getClients(URL url) {
         // whether to share connection
 
+        // 不同服务是否共享链接
         boolean useShareConnect = false;
 
         int connections = url.getParameter(CONNECTIONS_KEY, 0);
         List<ReferenceCountExchangeClient> shareClients = null;
         // if not configured, connection is shared, otherwise, one connection for one service
+        // 如果没配置，则默认链接是共享的，否则每个服务单独有自己的链接
         if (connections == 0) {
             useShareConnect = true;
 
             /**
              * The xml configuration should have a higher priority than properties.
+             * xml配置优先于属性配置
              */
             String shareConnectionsStr = url.getParameter(SHARE_CONNECTIONS_KEY, (String) null);
             connections = Integer.parseInt(StringUtils.isBlank(shareConnectionsStr) ? ConfigUtils.getProperty(SHARE_CONNECTIONS_KEY,
                     DEFAULT_SHARE_CONNECTIONS) : shareConnectionsStr);
+            // 获取共享NettyClient
             shareClients = getSharedClient(url, connections);
         }
 
+        //初始化Client
         ExchangeClient[] clients = new ExchangeClient[connections];
         for (int i = 0; i < clients.length; i++) {
             if (useShareConnect) {
                 clients[i] = shareClients.get(i);
 
             } else {
+                //创建信息NettyClient
                 clients[i] = initClient(url);
             }
         }
@@ -603,11 +617,17 @@ public class DubboProtocol extends AbstractProtocol {
 
         ExchangeClient client;
         try {
+            /**
+             *
+             * 默认当消费者启动时就与提供者建立了链接
+             * */
             // connection should be lazy
+            // 为惰性链接
             if (url.getParameter(LAZY_CONNECT_KEY, false)) {
                 client = new LazyConnectExchangeClient(url, requestHandler);
 
             } else {
+                //为及时链接
                 client = Exchangers.connect(url, requestHandler);
             }
 

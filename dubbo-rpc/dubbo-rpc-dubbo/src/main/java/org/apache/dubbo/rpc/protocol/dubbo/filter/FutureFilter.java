@@ -36,6 +36,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.$INVOKE;
 
 /**
  * EventFilter
+ * 用来实现异步调用
  */
 @Activate(group = CommonConstants.CONSUMER)
 public class FutureFilter implements Filter, Filter.Listener {

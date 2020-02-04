@@ -51,6 +51,7 @@ import static org.apache.dubbo.rpc.Constants.GENERIC_KEY;
 
 /**
  * GenericInvokerFilter.
+ * 用来实现泛化调用
  */
 @Activate(group = CommonConstants.PROVIDER, order = -20000)
 public class GenericFilter implements Filter, Filter.Listener {

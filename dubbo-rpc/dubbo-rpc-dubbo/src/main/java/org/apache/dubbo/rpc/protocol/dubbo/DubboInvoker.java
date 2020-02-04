@@ -62,9 +62,15 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
 
     private final Set<Invoker<?>> invokers;
 
+
+
+
     public DubboInvoker(Class<T> serviceType, URL url, ExchangeClient[] clients) {
         this(serviceType, url, clients, null);
     }
+
+
+
 
     public DubboInvoker(Class<T> serviceType, URL url, ExchangeClient[] clients, Set<Invoker<?>> invokers) {
         super(serviceType, url, new String[]{INTERFACE_KEY, GROUP_KEY, TOKEN_KEY, TIMEOUT_KEY});
@@ -74,27 +80,40 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         this.invokers = invokers;
     }
 
+
+
+
+    /**
+     * 使用NettyClient与服务提供者进行交互
+     */
     @Override
     protected Result doInvoke(final Invocation invocation) throws Throwable {
+        // 设置附加属性
         RpcInvocation inv = (RpcInvocation) invocation;
         final String methodName = RpcUtils.getMethodName(invocation);
         inv.setAttachment(PATH_KEY, getUrl().getPath());
         inv.setAttachment(VERSION_KEY, version);
 
+        //获取远程调用
         ExchangeClient currentClient;
         if (clients.length == 1) {
             currentClient = clients[0];
         } else {
             currentClient = clients[index.getAndIncrement() % clients.length];
         }
+        // 执行远程调用
         try {
+            // 是否为 oneWay ,即不需要响应结果的请求。
             boolean isOneway = RpcUtils.isOneway(getUrl(), invocation);
+            // 超时等待时间
             int timeout = getUrl().getMethodPositiveParameter(methodName, TIMEOUT_KEY, DEFAULT_TIMEOUT);
+            // 不需要响应的请求
             if (isOneway) {
                 boolean isSent = getUrl().getMethodParameter(methodName, Constants.SENT_KEY, false);
                 currentClient.send(inv, isSent);
                 return AsyncRpcResult.newDefaultAsyncResult(invocation);
             } else {
+                // 如果请求是异步调用，则保存远程client发送请求后返回的future对象，并且设置到RPCContext上下文中
                 ExecutorService executor = getCallbackExecutor(getUrl(), inv);
                 CompletableFuture<AppResponse> appResponseFuture =
                         currentClient.request(inv, timeout, executor).thenApply(obj -> (AppResponse) obj);
@@ -111,6 +130,9 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         }
     }
 
+
+
+
     @Override
     public boolean isAvailable() {
         if (!super.isAvailable()) {
@@ -124,6 +146,9 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         }
         return false;
     }
+
+
+
 
     @Override
     public void destroy() {
