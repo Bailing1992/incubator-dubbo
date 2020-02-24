@@ -78,6 +78,10 @@ public class AdaptiveClassCodeGenerator {
      * test if given type has at least one method annotated with <code>SPI</code>
      */
     private boolean hasAdaptiveMethod() {
+        // type.getMethods() 通过反射获取所有的方法
+        // 遍历方法列表
+        // 检测方法上是否有 Adaptive 注解
+
         return Arrays.stream(type.getMethods()).anyMatch(m -> m.isAnnotationPresent(Adaptive.class));
     }
 
@@ -86,13 +90,25 @@ public class AdaptiveClassCodeGenerator {
      */
     public String generate() {
         // no need to generate adaptive class since there's no adaptive method found.
+        /**
+         *  对于要生成自适应拓展的接口，Dubbo 要求该接口至少有一个方法被 Adaptive 注解修饰
+         *  若所有的方法上均无 Adaptive 注解，则抛出异常
+         * */
         if (!hasAdaptiveMethod()) {
             throw new IllegalStateException("No adaptive method exist on extension " + type.getName() + ", refuse to create the adaptive class!");
         }
 
+        /**
+         * 代码生成的顺序与 Java 文件内容顺序一致，
+         * 首先会生成 package 语句，
+         * 然后生成 import 语句，
+         * 紧接着生成类名等代码
+         * */
         StringBuilder code = new StringBuilder();
+        // 生成 package 代码：package + type 所在包
         code.append(generatePackageInfo());
         code.append(generateImports());
+        //生成类代码：public class + type简单名称 + $Adaptive + implements + type全限定名 + {
         code.append(generateClassDeclaration());
 
         Method[] methods = type.getMethods();
@@ -109,6 +125,7 @@ public class AdaptiveClassCodeGenerator {
 
     /**
      * generate package info
+     * 生成 package 代码：package + type 所在包
      */
     private String generatePackageInfo() {
         return String.format(CODE_PACKAGE, type.getPackage().getName());
@@ -116,6 +133,7 @@ public class AdaptiveClassCodeGenerator {
 
     /**
      * generate imports
+     * 生成 import 代码：import + ExtensionLoader 全限定名
      */
     private String generateImports() {
         return String.format(CODE_IMPORTS, ExtensionLoader.class.getName());
@@ -130,6 +148,12 @@ public class AdaptiveClassCodeGenerator {
 
     /**
      * generate method not annotated with Adaptive with throwing unsupported exception
+     *
+     * Dubbo 不会为没有标注 Adaptive 注解的方法生成代理逻辑，对于该种类型的方法，仅会生成一句抛出异常的代码。
+     *
+     *  生成的代码格式如下：
+     *  throw new UnsupportedOperationException(
+     *  "method " + 方法签名 + of interface + 全限定接口名 + is not adaptive method!”)
      */
     private String generateUnsupported(Method method) {
         return String.format(CODE_UNSUPPORTED, method, type.getName());
@@ -137,6 +161,7 @@ public class AdaptiveClassCodeGenerator {
 
     /**
      * get index of parameter with type URL
+     *  遍历参数列表，确定 URL 参数位置
      */
     private int getUrlTypeIndex(Method method) {
         int urlTypeIndex = -1;
@@ -187,6 +212,9 @@ public class AdaptiveClassCodeGenerator {
 
     /**
      * generate method URL argument null check
+     *   为 URL 类型参数生成判空代码，格式如下：
+     *     if (arg + urlTypeIndex == null)
+     *     throw new IllegalArgumentException("url == null");
      */
     private String generateUrlNullCheck(int index) {
         return String.format(CODE_URL_NULL_CHECK, index, URL.class.getName(), index);
@@ -199,11 +227,15 @@ public class AdaptiveClassCodeGenerator {
         Adaptive adaptiveAnnotation = method.getAnnotation(Adaptive.class);
         StringBuilder code = new StringBuilder(512);
         if (adaptiveAnnotation == null) {
+            //无 Adaptive 注解方法代码生成逻辑
+            //如果方法上无 Adaptive 注解，则生成 throw new UnsupportedOperationException(...) 代码
             return generateUnsupported(method);
         } else {
+            // 遍历参数列表，确定 URL 参数位置
             int urlTypeIndex = getUrlTypeIndex(method);
 
             // found parameter in URL type
+            // urlTypeIndex != -1，表示参数列表中存在 URL 参数
             if (urlTypeIndex != -1) {
                 // Null Point check
                 code.append(generateUrlNullCheck(urlTypeIndex));
@@ -212,8 +244,10 @@ public class AdaptiveClassCodeGenerator {
                 code.append(generateUrlAssignmentIndirectly(method));
             }
 
+            // 为 URL 类型参数生成赋值代码，形如 URL url = arg1
             String[] value = getMethodAdaptiveValue(adaptiveAnnotation);
 
+            //检测方法列表中是否存在 Invocation 类型的参数
             boolean hasInvocation = hasInvocationArgument(method);
 
             code.append(generateInvocationArgumentNullCheck(method));
@@ -240,6 +274,7 @@ public class AdaptiveClassCodeGenerator {
 
     /**
      * generate extName assigment code
+     * 存在 Invocation 类型的参数，若存在，则为其生成判空代码和其他一些代码。
      */
     private String generateExtNameAssignment(String[] value, boolean hasInvocation) {
         // TODO: refactor it
@@ -323,6 +358,11 @@ public class AdaptiveClassCodeGenerator {
 
     /**
      * get value of adaptive annotation or if empty return splitted simple name
+     * Adaptive 注解值 value 类型为 String[]，可填写多个值，默认情况下为空数组。若 value 为非空数组，直接获取数组内容即可。
+     * 若 value 为空数组，则需进行额外处理。
+     * 处理过程是将类名转换为字符数组，然后遍历字符数组，并将字符放入 StringBuilder 中。
+     * 若字符为大写字母，则向 StringBuilder 中添加点号，随后将字符变为小写存入 StringBuilder 中。
+     * 比如 LoadBalance 经过处理后，得到 load.balance。
      */
     private String[] getMethodAdaptiveValue(Adaptive adaptiveAnnotation) {
         String[] value = adaptiveAnnotation.value();
@@ -340,6 +380,7 @@ public class AdaptiveClassCodeGenerator {
      * test if parameter has method which returns type <code>URL</code>
      * <p>
      * if not found, throws IllegalStateException
+     *  遍历方法的参数类型列表,获取某一类型参数的全部方法, 遍历方法列表，寻找可返回 URL 的 getter 方法
      */
     private String generateUrlAssignmentIndirectly(Method method) {
         Class<?>[] pts = method.getParameterTypes();
@@ -348,6 +389,11 @@ public class AdaptiveClassCodeGenerator {
         for (int i = 0; i < pts.length; ++i) {
             for (Method m : pts[i].getMethods()) {
                 String name = m.getName();
+                // 1. 方法名以 get 开头，或方法名大于3个字符
+                // 2. 方法的访问权限为 public
+                // 3. 非静态方法
+                // 4. 方法参数数量为0
+                // 5. 方法返回值类型为 URL
                 if ((name.startsWith("get") || name.length() > 3)
                         && Modifier.isPublic(m.getModifiers())
                         && !Modifier.isStatic(m.getModifiers())
@@ -359,6 +405,7 @@ public class AdaptiveClassCodeGenerator {
         }
 
         // getter method not found, throw
+        // 如果所有参数中均不包含可返回 URL 的 getter 方法，则抛出异常
         throw new IllegalStateException("Failed to create adaptive class for interface " + type.getName()
                         + ": not found url parameter or url attribute in parameters of method " + method.getName());
 

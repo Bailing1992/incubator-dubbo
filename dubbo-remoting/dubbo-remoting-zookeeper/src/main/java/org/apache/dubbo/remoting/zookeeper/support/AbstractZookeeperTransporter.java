@@ -48,6 +48,7 @@ public abstract class AbstractZookeeperTransporter implements ZookeeperTransport
      *
      * @param url
      * @return
+     *  创建 CuratorZookeeperClient
      */
     @Override
     public ZookeeperClient connect(URL url) {

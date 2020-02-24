@@ -158,11 +158,17 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
         return export == null ? true : export;
     }
 
+    /**
+     * 获取 export
+     * */
     @Override
     public Boolean getExport() {
         return (export == null && provider != null) ? provider.getExport() : export;
     }
 
+    /**
+     * delay > 0，延时导出服务
+     * */
     public boolean shouldDelay() {
         Integer delay = getDelay();
         return delay != null && delay > 0;
@@ -197,10 +203,12 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
         return ref.getClass();
     }
 
+    // 检测 provider 是否为空，为空则新建一个，并通过系统变量为其初始化
     public void checkDefault() {
         createProviderIfAbsent();
     }
 
+    // 检测 provider 是否为空，为空则新建一个，并通过系统变量为其初始化
     private void createProviderIfAbsent() {
         if (provider != null) {
             return;

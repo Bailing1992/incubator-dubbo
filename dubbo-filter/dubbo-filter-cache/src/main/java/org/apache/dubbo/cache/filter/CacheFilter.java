@@ -63,7 +63,11 @@ import static org.apache.dubbo.common.constants.FilterConstants.CACHE_KEY;
  * @see org.apache.dubbo.cache.support.expiring.ExpiringCacheFactory
  * @see org.apache.dubbo.cache.support.expiring.ExpiringCache
  *
+ *
+ *  dubbo 缓存主要实现对方法调用结果的缓存。
+ *  在服务消费方和提供方都可以配置使用缓存。
  */
+// Activate 指明服务方和消费方都可以启用缓存
 @Activate(group = {CONSUMER, PROVIDER}, value = CACHE_KEY)
 public class CacheFilter implements Filter {
 
@@ -92,11 +96,15 @@ public class CacheFilter implements Filter {
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         if (cacheFactory != null && ConfigUtils.isNotEmpty(invoker.getUrl().getMethodParameter(invocation.getMethodName(), CACHE_KEY))) {
+            // invoker.getUrl().addParameter(Constants.METHOD_KEY, invocation.getMethodName())
+            // 作为缓存对象的key 可知不同的服务提供者，每个方法都会单独分配一个缓存对象
             Cache cache = cacheFactory.getCache(invoker.getUrl(), invocation);
             if (cache != null) {
                 String key = StringUtils.toArgumentString(invocation.getArguments());
                 Object value = cache.get(key);
                 if (value != null) {
+                    //缓存命中，直接返回,也就是说，
+                    //这里要注意，如果有多个过滤器，cache后面的过滤器不会执行
                     if (value instanceof ValueWrapper) {
                         return AsyncRpcResult.newDefaultAsyncResult(((ValueWrapper) value).get(), invocation);
                     } else {

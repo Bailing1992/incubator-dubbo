@@ -21,10 +21,24 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
        http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd">
 
+    <!-- 消费方应用名，用于计算依赖关系，不是匹配条件，不要与提供方一样 -->
     <dubbo:application name="demo-consumer"/>
 
     <dubbo:registry address="zookeeper://127.0.0.1:2181"/>
 
+    <!-- 生成远程服务代理，可以和本地 bean 一样使用 demoService
+       <dubbo:reference/> 用于创建一个远程服务代理，一个引用可以指向多个注册中心
+
+
+       Dubbo 缺省会在启动时检查依赖的服务是否可用，
+       不可用时会抛出异常，
+       阻止 Spring 初始化完成，
+       以便上线时，能及早发现问题，默认 check="true"
+
+       可以通过 check="false" 关闭检查，比如，测试时，有些服务不关心，或者出现了循环依赖，必须有一方先启动。
+
+       另外，如果你的 Spring 容器是懒加载的，或者通过 API 编程延迟引用服务，请关闭 check，否则服务临时不可用时，会抛出异常，拿到 null 引用，如果 check="false"，总是会返回引用，当服务恢复时，能自动连上。
+    -->
     <dubbo:reference id="demoService" check="false" interface="org.apache.dubbo.demo.DemoService"/>
 
 </beans>

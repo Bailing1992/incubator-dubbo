@@ -206,6 +206,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      */
     public void checkInterfaceAndMethods(Class<?> interfaceClass, List<MethodConfig> methods) {
         // interface cannot be null
+        // 检测 interfaceName 是否合法
         Assert.notNull(interfaceClass, new IllegalStateException("interface not allow null!"));
 
         // to verify interfaceClass is an interface

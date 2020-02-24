@@ -25,14 +25,17 @@ import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import org.apache.dubbo.demo.DemoService;
 
 public class Application {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        // 注意：ServiceConfig为重对象，内部封装了与注册中心的连接，以及开启服务端口
         ServiceConfig<DemoServiceImpl> service = new ServiceConfig<>();
         service.setInterface(DemoService.class);
         service.setRef(new DemoServiceImpl());
 
         DubboBootstrap bootstrap = DubboBootstrap.getInstance();
         bootstrap
+                // 当前应用配置
                 .application(new ApplicationConfig("dubbo-demo-api-provider"))
+                // 连接注册中心配置
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .service(service)
                 .start()

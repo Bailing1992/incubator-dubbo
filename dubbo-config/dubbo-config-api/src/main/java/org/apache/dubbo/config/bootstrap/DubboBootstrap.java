@@ -347,6 +347,9 @@ public class DubboBootstrap extends GenericEventListener {
         return service(builder.build());
     }
 
+    /**
+     * 配置服务
+     * */
     public DubboBootstrap service(ServiceConfig<?> serviceConfig) {
         configManager.addService(serviceConfig);
         return this;

@@ -114,6 +114,7 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
         // 独占锁保证同时只有一个线程实例创建服务注册实例
         LOCK.lock();
         try {
+            // 访问缓存
             Registry registry = REGISTRIES.get(key);
             if (registry != null) {
                 return registry;
@@ -124,6 +125,7 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
             if (registry == null) {
                 throw new IllegalStateException("Can not create registry " + url);
             }
+            // 写入缓存
             REGISTRIES.put(key, registry);
             return registry;
         } finally {

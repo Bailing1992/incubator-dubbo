@@ -29,12 +29,21 @@ import org.apache.dubbo.remoting.transport.dispatcher.WrappedChannelHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 
+/**
+ * 默认的线程池配置
+ * all 所有消息都派发到线程池，包括请求，响应，连接事件，断开事件，心跳等。
+ * */
 public class AllChannelHandler extends WrappedChannelHandler {
 
     public AllChannelHandler(ChannelHandler handler, URL url) {
         super(handler, url);
     }
 
+
+    /**
+     *  链接事件通过线程池处理
+     *  @param channel NettyChannel 实例
+     * */
     @Override
     public void connected(Channel channel) throws RemotingException {
         ExecutorService executor = getExecutorService();
@@ -45,6 +54,9 @@ public class AllChannelHandler extends WrappedChannelHandler {
         }
     }
 
+    /**
+     * 链接断开事件通过线程池处理
+     */
     @Override
     public void disconnected(Channel channel) throws RemotingException {
         ExecutorService executor = getExecutorService();
@@ -55,8 +67,14 @@ public class AllChannelHandler extends WrappedChannelHandler {
         }
     }
 
+    /**
+     * 数据接收事件通过线程池处理
+     *  @param channel NettyChannel
+     *  @param message Request/Response
+     * */
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
+        // 提供者: FixedThreadPool.getExecutor()；消费者：CachedThreadPool.getExecutor()
         ExecutorService executor = getPreferredExecutorService(message);
         try {
             executor.execute(new ChannelEventRunnable(channel, handler, ChannelState.RECEIVED, message));
@@ -69,6 +87,9 @@ public class AllChannelHandler extends WrappedChannelHandler {
         }
     }
 
+    /**
+     *  异常事件通过线程池梳理
+     *  */
     @Override
     public void caught(Channel channel, Throwable exception) throws RemotingException {
         ExecutorService executor = getExecutorService();

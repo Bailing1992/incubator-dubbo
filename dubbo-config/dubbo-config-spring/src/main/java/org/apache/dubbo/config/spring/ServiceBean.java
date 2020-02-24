@@ -35,6 +35,9 @@ import org.springframework.context.ApplicationEventPublisherAware;
 /**
  * ServiceFactoryBean
  *
+ * 服务导出的入口方法是 ServiceBean 的 onApplicationEvent。
+ * onApplicationEvent 是一个事件响应方法，该方法会在收到 Spring 上下文刷新事件后执行服务导出操作。
+ *
  * @export
  */
 public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean, DisposableBean,

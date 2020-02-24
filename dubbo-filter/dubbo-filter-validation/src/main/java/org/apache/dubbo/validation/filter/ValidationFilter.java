@@ -57,6 +57,10 @@ import static org.apache.dubbo.common.constants.FilterConstants.VALIDATION_KEY;
  * @see Validator
  * @see Filter
  * @see org.apache.dubbo.validation.support.AbstractValidation
+ *
+ * 参数验证功能 是基于 JSR303 实现的，用户只需标识 JSR303 标准的验证 annotation，并通过声明 filter 来实现验证 [2]。
+ *
+ *
  */
 @Activate(group = {CONSUMER, PROVIDER}, value = VALIDATION_KEY, order = 10000)
 public class ValidationFilter implements Filter {
