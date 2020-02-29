@@ -170,7 +170,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
 
     /**
-     * 生成远程调用代理类, 方法拦截器为 InvokeInvocationHandler
+     * 生成 远程调用 代理类, 方法拦截器为 InvokeInvocationHandler
      * */
     public synchronized T get() {
         if (destroyed) {
@@ -206,7 +206,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
 
     /**
-     * Dubbo 提供了丰富的配置，用于调整和优化框架行为，性能等。
+     * Dubbo 提供了 丰富的配置，用于 调整和优化 框架行为，性能等。
      * Dubbo 在引用或导出服务时，首先会对这些配置进行检查和处理，以保证配置的正确性。
      * 配置解析逻辑封装在 ReferenceConfig 的 init 方法中，下面进行分析。
      * */
@@ -325,8 +325,8 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
 
     /**
-     * 创建 对远程服务提供者的代理
-     * 1 调用RegistryProtocol类的refer方法，由于registryProtocol是一个SPI，所以这里是通过其适配器类进行间接调用的
+     * 创建 对 远程服务提供者 的代理
+     * 1 调用 RegistryProtocol 类的 refer 方法，由于 registryProtocol 是一个 SPI，所以这里是 通过 其适配器类 进行间接调用的
      * */
     //
     @SuppressWarnings({"unchecked", "rawtypes", "deprecation"})

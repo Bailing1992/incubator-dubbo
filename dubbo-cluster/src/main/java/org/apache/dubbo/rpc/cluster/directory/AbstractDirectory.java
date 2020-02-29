@@ -81,12 +81,17 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
         setRouterChain(routerChain);
     }
 
+
+    /**
+     * AbstractDirectory 封装了 Invoker 列举流程，具体的列举逻辑则由子类实现，这是典型的模板模式。
+     * */
     @Override
     public List<Invoker<T>> list(Invocation invocation) throws RpcException {
         if (destroyed) {
             throw new RpcException("Directory already destroyed .url: " + getUrl());
         }
 
+        // 调用 doList 方法列举 Invoker，doList 是模板方法，由子类实现
         return doList(invocation);
     }
 

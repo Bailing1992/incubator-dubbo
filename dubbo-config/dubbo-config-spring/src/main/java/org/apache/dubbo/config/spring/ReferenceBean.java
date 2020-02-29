@@ -41,8 +41,8 @@ import static org.springframework.beans.factory.BeanFactoryUtils.beansOfTypeIncl
 
 /**
  * ReferenceFactoryBean
- * 服务引用的入口方法为 ReferenceBean 的 getObject 方法，
- * 该方法定义在 Spring 的 FactoryBean 接口中，ReferenceBean 实现了这个方法
+ * 服务引用 的入口方法 为 ReferenceBean 的 getObject 方法，
+ * 该方法 定义在 Spring 的 FactoryBean 接口中，ReferenceBean 实现了这个方法
  */
 public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
         ApplicationContextAware, InitializingBean, DisposableBean {

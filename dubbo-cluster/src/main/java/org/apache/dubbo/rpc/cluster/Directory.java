@@ -40,6 +40,8 @@ import java.util.List;
  *
  * StaticDirectory 是当消费端使用了多注册中心时，其把所有的服务注册中心的invoker列表汇集到一个invoker列表中
  *
+ * AbstractDirectory 实现了 Directory 接口，这个接口包含了一个重要的方法定义，即 list(Invocation)，用于列举 Invoker
+ *
  */
 public interface Directory<T> extends Node {
 

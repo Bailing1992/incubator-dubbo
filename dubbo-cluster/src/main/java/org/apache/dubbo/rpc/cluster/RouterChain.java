@@ -28,7 +28,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Router chain
+ * Router chain 路由器链，封装路由器，链式调用所有路由器；
+
+ * 路由器 链 RouterChain 负责管理所有激活的路由器，按顺序调用路由器，
+ * 将前一个路由器过滤后的可用服务提供者列表传递给后一个过滤器，
+ * 直到所有路由器都被调用过，剩下的就是最终可调用的服务提供者。
  */
 public class RouterChain<T> {
 
@@ -42,18 +46,25 @@ public class RouterChain<T> {
     // instance will never delete or recreate.
     private List<Router> builtinRouters = Collections.emptyList();
 
+
+    /**
+     * 静态方法buildChain，用于创建RouterChain对象
+     * */
     public static <T> RouterChain<T> buildChain(URL url) {
         return new RouterChain<>(url);
     }
 
     private RouterChain(URL url) {
+        // 获取SPI注册的所有路由工厂，@Activate注解声明的RouterFactory
         List<RouterFactory> extensionFactories = ExtensionLoader.getExtensionLoader(RouterFactory.class)
                 .getActivateExtension(url, "router");
 
+        // 遍历 SPI 注册的 路由工厂，由 路由工厂 创建 路由器
         List<Router> routers = extensionFactories.stream()
                 .map(factory -> factory.getRouter(url))
                 .collect(Collectors.toList());
 
+        //排序，调用Collections.sort(routers)
         initWithRouters(routers);
     }
 
@@ -92,21 +103,31 @@ public class RouterChain<T> {
      * @param url
      * @param invocation
      * @return
+     *
+     * Router 的 runtime 参数这里简单说明一下，这个参数决定了是否在每次调用服务时都执行路由规则。
      */
     public List<Invoker<T>> route(URL url, Invocation invocation) {
         List<Invoker<T>> finalInvokers = invokers;
+        /**
+         * 获取路由 Router 列表
+         * invokers 是由 RegistryDirectory 订阅到 注册中心事件时 调用 RouterChain 的 setInvokers方法 更新的
+         * */
         for (Router router : routers) {
+            // 进行服务路由,RegistryDirectory
             finalInvokers = router.route(finalInvokers, url, invocation);
         }
         return finalInvokers;
     }
 
     /**
+     * 由 注册 目录（RegistryDirectory）调用 更新
+     * invokers 当前 注册 在 注册中心 的 所有可用提供者
      * Notify router chain of the initial addresses from registry at the first time.
      * Notify whenever addresses in registry change.
      */
     public void setInvokers(List<Invoker<T>> invokers) {
         this.invokers = (invokers == null ? Collections.emptyList() : invokers);
+        // 所有 路由器 都要 更新 路由规则
         routers.forEach(router -> router.notify(this.invokers));
     }
 }

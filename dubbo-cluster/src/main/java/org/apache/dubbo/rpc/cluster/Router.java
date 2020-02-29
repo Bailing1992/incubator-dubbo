@@ -25,11 +25,24 @@ import java.util.List;
 
 /**
  * Router. (SPI, Prototype, ThreadSafe)
+ *
+ * Router：路由器，实现具体的路由功能
+ *
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Routing">Routing</a>
  *
  * @see org.apache.dubbo.rpc.cluster.Cluster#join(Directory)
  * @see org.apache.dubbo.rpc.cluster.Directory#list(Invocation)
+ *
+ * 路由功能 是使用 过滤器链 实现的，每个接口（服务）对应一个路由器链，与shiro框架实现权限验证类似。
+ * 路由器 通过 路由器工厂 创建，路由器工厂 可以配置多个，通过SPI的@Activate注解自动激活，
+ * 最后将这些 路由器 封装为一条 链，路由器的 调用顺序 可通过配置 @Activae的order 属性指定。
+ * 每个路由器过滤后 返回可调用的 服务提供者 列表。
+ *
+ * 服务目录在刷新 Invoker 列表的过程中，会通过 Router 进行服务路由，筛选出符合路由规则的服务提供者。
+ * 服务路由包含一条路由规则，路由规则决定了服务消费者的调用目标，即规定了服务消费者可调用哪些服务提供者。
+ * Dubbo 目前提供了三种服务路由实现，分别为条件路由 ConditionRouter、脚本路由 ScriptRouter 和标签路由 TagRouter。
+ *
  */
 public interface Router extends Comparable<Router> {
 
@@ -45,6 +58,8 @@ public interface Router extends Comparable<Router> {
     /**
      * Filter invokers with current routing rule and only return the invokers that comply with the rule.
      *
+     * 过滤，返回可用的服务提供者
+     *
      * @param invokers   invoker list
      * @param url        refer url
      * @param invocation invocation
@@ -57,6 +72,8 @@ public interface Router extends Comparable<Router> {
     /**
      * Notify the router the invoker list. Invoker list may change from time to time. This method gives the router a
      * chance to prepare before {@link Router#route(List, URL, Invocation)} gets called.
+     *
+     * 订阅 到 注册中心事件时被调用 （由路由器链RouterChain调用）
      *
      * @param invokers invoker list
      * @param <T>      invoker's type
@@ -89,6 +106,9 @@ public interface Router extends Comparable<Router> {
      */
     int getPriority();
 
+    /**
+     * 实现排序
+     */
     @Override
     default int compareTo(Router o) {
         if (o == null) {

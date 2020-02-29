@@ -49,6 +49,27 @@ import static org.apache.dubbo.rpc.Constants.TOKEN_KEY;
 
 /**
  * DubboInvoker
+ *
+ * DubboInvoker 被包装 的 次数及顺序:
+ * 1 DubboInvoker
+ * 2 AsyncToSyncInvoker
+ * 3 Filter
+ * 4 InvokerWrapper
+ * 5 FailoverClusterInvoker
+ * 6 MockClusterInvoker
+ * 7 InvokerInvocationHandler
+ * 8 ReferenceAnnocationBeanPostProcessor
+ *
+ * 由于 默认使用 的 集群容错策略 为 Failover，因此DubboInvoker还会被FailoverClusterInvoker包装，实现调用失败重试。
+ *
+ *
+ * 从集群容错层开始，一次请求开始到获取到目标服务提供者的调用过程为：
+ *
+ *     Cluster 管理 Directory，Cluster 调用 Directory 的 list 方法获取可调用的 所有服务提供者
+ *
+ *     Directory 调用 RouterChain 的 router 方法，获取所有路由器过滤后返回的可用服务提供者
+ *
+ *     Cluster 调用负载均衡器 的 select 方法，返回本次调用的服务提供者
  */
 public class DubboInvoker<T> extends AbstractInvoker<T> {
 

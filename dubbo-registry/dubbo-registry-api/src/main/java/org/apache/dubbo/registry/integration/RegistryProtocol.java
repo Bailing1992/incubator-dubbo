@@ -411,7 +411,7 @@ public class RegistryProtocol implements Protocol {
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         // 取 registry 参数值，并将其设置为协议头
         url = getRegistryUrl(url);
-        // 获取注册中心实例
+        // 获取 注册中心 实例
         Registry registry = registryFactory.getRegistry(url);
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
@@ -454,27 +454,35 @@ public class RegistryProtocol implements Protocol {
 
         // 创建 RegistryDirectory 实例
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
-        // 设置注册中心和协议
+
+        // 设置 注册中心 和 协议
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
+
         // all attributes of REFER_KEY
         Map<String, String> parameters = new HashMap<String, String>(directory.getUrl().getParameters());
+
         // 生成服务消费者链接
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
 
-        // 注册服务消费者，在 consumers 目录下新节点
+        // 注册 服务 消费者，在 consumers 目录下新节点
         if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
             directory.setRegisteredConsumerUrl(getRegisteredConsumerUrl(subscribeUrl, url));
+
+            // 注册到注册中心
             registry.register(directory.getRegisteredConsumerUrl());
         }
-        // 建立路由规则链
+
+        // 路由，为当前引入的服务提供者创建RouterChain
         directory.buildRouterChain(subscribeUrl);
-        // 订阅服务提供者地址，向服务注册中心订阅服务提供者的服务。
+
+        // 服务消费者 订阅：提供者、配置、路由改变通知
         directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
                 PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 
         // 包装 机器容错策略 到 invoker, 根据参数选择配置的集群容错策略
         Invoker invoker = cluster.join(directory);
+
         return invoker;
     }
 

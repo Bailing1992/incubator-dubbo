@@ -24,6 +24,9 @@ import java.util.List;
  * NotifyListener. (API, Prototype, ThreadSafe)
  *
  * @see org.apache.dubbo.registry.RegistryService#subscribe(URL, NotifyListener)
+ *
+ *  RegistryDirectory 实现了 NotifyListener 接口，当注册中心节点信息发生变化后，
+ *  RegistryDirectory 可以通过此接口方法得到变更信息，并根据变更信息动态调整内部 Invoker 列表
  */
 public interface NotifyListener {
 

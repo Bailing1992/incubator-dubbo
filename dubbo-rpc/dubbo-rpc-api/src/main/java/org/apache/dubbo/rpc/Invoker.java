@@ -26,12 +26,12 @@ import org.apache.dubbo.common.Node;
  * @see org.apache.dubbo.rpc.protocol.AbstractInvoker
  *
  *
- * Invoker 是实体域，它是 Dubbo 的核心模型，其它模型都向它靠扰，或转换成它，
+ * Invoker 是 实体域，它是 Dubbo 的 核心模型，其它模型 都向它 靠扰，或转换成它
  *
- * 在服务提供方，Invoker 用于调用服务提供类
+ * - 在服务提供方，Invoker 用于 调用服务提供类
  *
- * 在服务消费方，Invoker 用于执行远程调用. 它代表一个可执行体，可向它发起 invoke 调用，它有可能是一个本地的实现，也可能是一个远程的实现，
- * 也可能一个集群实现。
+ * - 在服务消费方，Invoker 用于 执行远程调用. 它 代表一个 可执行体，可向它发起 invoke 调用，它有可能是一个本地的实现，也可能是一个远程的实现，
+ * 也可能一个集群实现
  */
 public interface Invoker<T> extends Node {
 

@@ -14,19 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.dubbo.rpc.cluster.support;
+ package org.apache.dubbo.rpc.cluster.support;
 
-import org.apache.dubbo.rpc.RpcException;
-import org.apache.dubbo.rpc.cluster.Directory;
-import org.apache.dubbo.rpc.cluster.support.wrapper.AbstractCluster;
+ import org.apache.dubbo.rpc.RpcException;
+ import org.apache.dubbo.rpc.cluster.Directory;
+ import org.apache.dubbo.rpc.cluster.support.wrapper.AbstractCluster;
 
-/**
+ /**
  * {@link FailoverClusterInvoker}
+ *
  * cluster 的扩展接口的实现类
  *
  * 集群容错策略
  *
  * 使用 集群容错扩展 将 Dubbo 协议的 invoker 客户端转化为需要的接口
+  *
+  *
+  *
+  *
  *
  */
 public class FailoverCluster extends AbstractCluster {
@@ -35,10 +40,10 @@ public class FailoverCluster extends AbstractCluster {
 
     /**
      * 把 directory对象包裹到了FailoverClusterInvoker里
-     *
      * */
     @Override
     public <T> AbstractClusterInvoker<T> doJoin(Directory<T> directory) throws RpcException {
+        // 创建并返回 FailoverClusterInvoker 对象
         return new FailoverClusterInvoker<>(directory);
     }
 

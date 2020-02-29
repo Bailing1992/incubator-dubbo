@@ -45,6 +45,9 @@ import static org.apache.dubbo.rpc.Constants.FORCE_USE_TAG;
 
 /**
  * TagRouter, "application.tag-router"
+ *
+ * 路由器 需要 实现 Router 接口 的 route 方法，而 标签路由器 就是 过滤掉没有与当前消费者 相同标签 的服务提供者。
+ * 服务提供者 标签 可以设置多个，多个标签使用‘,’号分割，只要 服务提供者 的 标签中含有与 当前消费者相同的 标签 就是匹配的。
  */
 public class TagRouter extends AbstractRouter implements ConfigurationListener {
     public static final String NAME = "TAG_ROUTER";
@@ -60,6 +63,7 @@ public class TagRouter extends AbstractRouter implements ConfigurationListener {
         this.priority = TAG_ROUTER_DEFAULT_PRIORITY;
     }
 
+    // 解析、更新路由规则
     @Override
     public synchronized void process(ConfigChangedEvent event) {
         if (logger.isDebugEnabled()) {
@@ -97,30 +101,43 @@ public class TagRouter extends AbstractRouter implements ConfigurationListener {
         }
 
         List<Invoker<T>> result = invokers;
+        // 获取消费端指定的标签
         String tag = StringUtils.isEmpty((String) invocation.getAttachment(TAG_KEY)) ? url.getParameter(TAG_KEY) :
                 (String) invocation.getAttachment(TAG_KEY);
 
         // if we are requesting for a Provider with a specific tag
+        // 如果请求具有特定标记的服务（tag不为空）
         if (StringUtils.isNotEmpty(tag)) {
+            // 获取标签tag匹配的所有服务提供者的addresse
+            // 如下这种配置会用到：
+            // tags:
+            //    - name: tag1
+            //      addresses: ["127.0.0.1:20880"]
+            //    - name: tag2
+            //      addresses: ["127.0.0.1:20881"]
             List<String> addresses = tagRouterRuleCopy.getTagnameToAddresses().get(tag);
             // filter by dynamic tag group first
             if (CollectionUtils.isNotEmpty(addresses)) {
                 result = filterInvoker(invokers, invoker -> addressMatches(invoker.getUrl(), addresses));
                 // if result is not null OR it's null but force=true, return result directly
+                // 如果result不为空，或为空但force=true，则直接返回result
                 if (CollectionUtils.isNotEmpty(result) || tagRouterRuleCopy.isForce()) {
                     return result;
                 }
             } else {
                 // dynamic tag group doesn't have any item about the requested app OR it's null after filtered by
                 // dynamic tag group but force=false. check static tag
+                // 从所有服务提供者中，过滤获取url中dubbo.tag参数与tag相同的
                 result = filterInvoker(invokers, invoker -> tag.equals(invoker.getUrl().getParameter(TAG_KEY)));
             }
             // If there's no tagged providers that can match the current tagged request. force.tag is set by default
             // to false, which means it will invoke any providers without a tag unless it's explicitly disallowed.
+            // 如果过滤后的结果不为空，且强制使用标签，则返回过滤结果
             if (CollectionUtils.isNotEmpty(result) || isForceUseTag(invocation)) {
                 return result;
             }
             // FAILOVER: return all Providers without any tags.
+            // 返回所有未设置标签的服务提供者
             else {
                 List<Invoker<T>> tmp = filterInvoker(invokers, invoker -> addressNotMatches(invoker.getUrl(),
                         tagRouterRuleCopy.getAddresses()));
@@ -228,12 +245,17 @@ public class TagRouter extends AbstractRouter implements ConfigurationListener {
         this.application = app;
     }
 
+    /**
+     * 由路由器链 RouterChain 调用，更新路由规则
+     * 发送一个 ConfigChangeEvent 事件，交由 process 方法更新标签路由规则
+     */
     @Override
     public <T> void notify(List<Invoker<T>> invokers) {
         if (CollectionUtils.isEmpty(invokers)) {
             return;
         }
 
+        // 获取服务提供者应用名称
         Invoker<T> invoker = invokers.get(0);
         URL url = invoker.getUrl();
         String providerApplication = url.getParameter(CommonConstants.REMOTE_APPLICATION_KEY);
@@ -246,12 +268,15 @@ public class TagRouter extends AbstractRouter implements ConfigurationListener {
 
         synchronized (this) {
             if (!providerApplication.equals(application)) {
+                // 移除当前的路由配置改变监听器
                 if (!StringUtils.isEmpty(application)) {
                     ruleRepository.removeListener(application + RULE_SUFFIX, this);
                 }
                 String key = providerApplication + RULE_SUFFIX;
+                // 设置新的路由配置改变监听器
                 ruleRepository.addListener(key, this);
                 application = providerApplication;
+                // 获取规则配置
                 String rawRule = ruleRepository.getRule(key, DynamicConfiguration.DEFAULT_GROUP);
                 if (StringUtils.isNotEmpty(rawRule)) {
                     this.process(new ConfigChangedEvent(key, DynamicConfiguration.DEFAULT_GROUP, rawRule));
